@@ -7,15 +7,19 @@ require("dotenv").config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 3000;
 const reviews = require("./reviews.json");
+const Agentroute = require("./Routes/Agentroute.js");
+const VideoUploadRoute = require("./Routes/VideoUploadRoute.js");
 
 // middleware
 
 app.use(cors());
 app.use(express.json());
 
+// These Are Commented Out for As of now for the testing purpose of the In Memory Array
+
 //mongoDB
 //new
-const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.di78vms.mongodb.net/?retryWrites=true&w=majority`;
+const uri = "mongodb://localhost:27017/abuildhomesDB";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -65,6 +69,7 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
     app.get("/api/v1/users", async (req, res) => {
       const email = req.query.email;
       let query = {};
@@ -74,6 +79,7 @@ async function run() {
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     });
+
     // single user Data role get
     app.get("/api/v1/users/role", async (req, res) => {
       const email = req.query.email;
@@ -117,7 +123,7 @@ async function run() {
     
     // Property related apis
     
-    //all properties + query properties
+    // all properties + query properties
     app.get("/api/v1/properties", async (req, res) => {
       const status = req.query.status;
       const email = req.query.email;
@@ -236,6 +242,7 @@ async function run() {
       const result = await wishlistsCollection.find(query).toArray();
       res.send(result);
     });
+
     //id wise property data get
     app.get("/api/v1/wishlists/:id", async (req, res) => {
       const id = req.params.id;
@@ -398,11 +405,27 @@ async function run() {
       });
     });
 
+  // Agent Routes are Being Written From here, Have a Look on this
+  app.use('/api/Agent',Agentroute)
+  app.use('/api/uploads',VideoUploadRoute)
+
+  app.use((err,req,res,next) => {
+    console.log(err.statusCode);
+    console.log(err.message);
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server error';
+    return res.status(statusCode).json({
+        success: false,
+        statusCode: statusCode,
+        message: message,
+    })
+  })
+
     // Send a ping to confirm a successful connection
-    // await client.db("admin").command({ ping: 1 });
-    // console.log(
-    //   "Pinged your deployment. You successfully connected to MongoDB!"
-    // );
+    await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
